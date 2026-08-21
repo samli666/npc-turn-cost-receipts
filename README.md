@@ -1,10 +1,10 @@
 # Measure the cost of every NPC turn
 
-The useful boundary is the model call itself: capture its receipt beside the generated dialogue, then let the game backend aggregate those receipts by encounter, player session, or release without reconstructing spend from token counts later. This example routes the call through Infrai's OpenAI-compatible `baseURL`, so the official TypeScript client stays familiar while a single `INFRAI_API_KEY` provides the model response and its per-call cost metadata.
+I built this after a weekend of guessing why our cloud bill spiked during a playtest. The real boundary is the model call itself: grab its receipt right next to the generated dialogue, then let your game backend group those receipts by encounter, player session, or release. No need to reconstruct spend from token counts later. This example sends the call through Infrai's OpenAI-compatible `baseURL`, so the official TypeScript client stays familiar while a single `INFRAI_API_KEY` gives you the model response and its per-call cost metadata.
 
 ## Run one turn
 
-Use Node.js 20 or newer, install the small TypeScript toolchain, and provide the credential through the environment:
+I used Node.js 20 and about an hour to wire up the small TypeScript toolchain. Provide the credential through the environment:
 
 ```bash
 npm install
@@ -22,11 +22,11 @@ The script asks an NPC harbor master to answer a player and prints one backend-f
 }
 ```
 
-The numeric value and vendor above illustrate the output shape; each run uses the receipt returned for that specific request.
+The numeric value and vendor above are just example output shape; each run uses the receipt returned for that specific request.
 
 ## Why record the receipt instead of recounting tokens
 
-Manual accounting estimates cost after the fact by pairing token counts with a separate rate table, which means the game service owns extra data and must keep that table aligned with model selection. The receipt approach records what happened at the same point where the dialogue enters the workflow, and `model: "auto"` can route the request without forcing the accounting code to predict the serving vendor.
+Manual accounting estimates cost after the fact by pairing token counts with a separate rate table. That means your game service owns extra data and must keep that table aligned with model selection. The receipt approach records what happened at the same point where the dialogue enters the workflow, and `model: "auto"` can route the request without forcing the accounting code to predict the serving vendor.
 
 `src/resolve_npc_turn.ts` uses the official OpenAI client, requests the raw HTTP response, and passes its headers to `src/model_cost_receipt.ts`. The client is configured with bounded automatic retries; on a 429 it applies backoff and honors `Retry-After`, while the explicit `POST` method keeps the request intent visible at the call site. Chat completion requests are read-only generation operations, so retrying does not create a second game-side mutation.
 
